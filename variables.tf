@@ -15,3 +15,9 @@ variable "admin_username" {
   default     = "azureuser"
   description = "Usuário administrador da VM Linux."
 }
+
+variable "ssh_public_key_path" {
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
+  description = "Caminho para a chave pública SSH local."
+}
