@@ -148,7 +148,7 @@ resource "azurerm_container_group" "aci" {
 
   container {
     name   = "prometheus"
-    image  = "prom/prometheus:latest"
+    image  = "quay.io/prometheus/prometheus:latest"
     cpu    = "0.5"
     memory = "0.5"
 
