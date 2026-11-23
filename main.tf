@@ -137,3 +137,60 @@ resource "azurerm_linux_virtual_machine" "vm" {
   custom_data = filebase64("${path.module}/scripts/setup_vm.py")
 }
 
+# 9. Azure Container Instance (Prometheus + Grafana)
+resource "azurerm_container_group" "aci" {
+  name                = "${var.prefix}-aci"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  ip_address_type     = "Private"
+  os_type             = "Linux"
+  subnet_ids          = [azurerm_subnet.subnet_aci.id]
+
+  container {
+    name   = "prometheus"
+    image  = "prom/prometheus:latest"
+    cpu    = "0.5"
+    memory = "0.5"
+
+    ports {
+      port     = 9090
+      protocol = "TCP"
+    }
+
+    volume {
+      name       = "prometheus-config"
+      mount_path = "/etc/prometheus"
+      read_only  = true
+
+      secret = {
+        "prometheus.yml" = base64encode(<<-EOF
+          global:
+            scrape_interval: 15s
+
+          scrape_configs:
+            - job_name: 'vm-node-exporter'
+              static_configs:
+                - targets: ['${azurerm_network_interface.nic_vm.private_ip_address}:9100']
+        EOF
+        )
+      }
+    }
+  }
+
+  container {
+    name   = "grafana"
+    image  = "grafana/grafana:latest"
+    cpu    = "0.5"
+    memory = "1.0"
+
+    ports {
+      port     = 3000
+      protocol = "TCP"
+    }
+
+    environment_variables = {
+      GF_SECURITY_ADMIN_USER     = "admin"
+      GF_SECURITY_ADMIN_PASSWORD = "admin"
+    }
+  }
+}
